@@ -1,0 +1,238 @@
+substitutions:
+  device_name: jura_coffee
+  friendly_name: Jura ENA 8
+  device_description: Jura Coffee Machine
+
+esphome:
+  name: ${device_name}
+  comment: ${device_description}
+  includes:
+    - jura_coffee.h
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  password: ""
+
+ota:
+  password: ""
+
+wifi:
+  ssid: "Discovery IoT"
+  password: "1LnD1%bzbI"
+
+  use_address: 192.168.2.36
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Jura Connect"
+    password: "VZgETkjaSnVm"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+uart:
+  tx_pin: 17
+  rx_pin: 16
+  baud_rate: 9600
+  id: uart_bus
+  # debug:
+  #   direction: RX
+  #   after:
+  #     delimiter: "\r\n"
+  #   sequence:
+  #     - lambda: |-
+  #         String inbytes;
+  #         char inbyte;
+  #         int s = 0;
+  #         //UARTDebug::log_string(direction, bytes);
+  #         for (int i = 0; i < bytes.size() - 2; i++) {
+  #           byte rawbyte = bytes[i];
+  #           bitWrite(inbyte, s + 0, bitRead(rawbyte, 2));
+  #           bitWrite(inbyte, s + 1, bitRead(rawbyte, 5));
+  #           if ((s += 2) >= 8) {
+  #             s = 0;
+  #             inbytes += inbyte;
+  #           }
+  #         }
+  #         ESP_LOGD("RX", "%s", inbytes);
+
+
+switch:
+  - platform: template
+    name: 'Coffee Machine'
+    icon: "mdi:coffee-maker"
+    id: jura_on_off_switch
+    turn_on_action:
+      - uart.write: [0xDF, 0xDB, 0xDB, 0xDF]  ## 'A'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFF, 0xDB, 0xDF]  ## 'N'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xFF, 0xDB]  ## ':'
+      - delay: 8ms
+      - uart.write: [0xDB, 0xDB, 0xFF, 0xDB]  ## '0'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xDB, 0xFF, 0xDB]  ## '1'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xFF, 0xDB, 0xDB]  ## '\r'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xDB, 0xDB]  ## '\n'
+
+
+    turn_off_action:
+      - uart.write: [0xDF, 0xDB, 0xDB, 0xDF]  ## 'A'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFF, 0xDB, 0xDF]  ## 'N'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xFF, 0xDB]  ## ':'
+      - delay: 8ms
+      - uart.write: [0xDB, 0xDB, 0xFF, 0xDB]  ## '0'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xDB, 0xFF, 0xDB]  ## '2'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xFF, 0xDB, 0xDB]  ## '\r'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xDB, 0xDB]  ## '\n'
+    optimistic: true
+    assumed_state: true
+
+  - platform: template
+    name: 'Make Hot Water'
+    icon: "mdi:cup-water"
+    id: jura_make_hot_water
+    turn_on_action:
+      - uart.write: [0xFB, 0xDF, 0xDB, 0xDF]  ## 'F'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xDB, 0xDB, 0xDF]  ## 'A'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xFF, 0xDB]  ## ':'
+      - delay: 8ms
+      - uart.write: [0xDB, 0xDB, 0xFF, 0xDB]  ## '0'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xDF, 0xFF, 0xDB]  ## '6'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xFF, 0xDB, 0xDB]  ## '\r'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xDB, 0xDB]  ## '\n'
+
+  - platform: template
+    name: 'Make Coffee'
+    icon: "mdi:coffee"
+    id: jura_make_coffee
+    turn_on_action:
+      - uart.write: [0xFB, 0xDF, 0xDB, 0xDF]  ## 'F'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xDB, 0xDB, 0xDF]  ## 'A'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xFF, 0xDB]  ## ':'
+      - delay: 8ms
+      - uart.write: [0xDB, 0xDB, 0xFF, 0xDB]  ## '0'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xFB, 0xFF, 0xDB]  ## '9'
+      - delay: 8ms
+      - uart.write: [0xDF, 0xFF, 0xDB, 0xDB]  ## '\r'
+      - delay: 8ms
+      - uart.write: [0xFB, 0xFB, 0xDB, 0xDB]  ## '\n'
+    
+  # - platform: template
+  #   name: 'Hello'
+  #   id: jura_hello
+  #   turn_on_action:
+  #     - uart.write: [0xDB, 0xDF, 0xDF, 0xDF]  ## 'T'
+  #     - delay: 8ms
+  #     - uart.write: [0xDF, 0xFB, 0xDF, 0xDF]  ## 'Y'
+  #     - delay: 8ms
+  #     - uart.write: [0xFB, 0xFB, 0xFF, 0xDB]  ## ':'
+  #     - delay: 8ms
+  #     - uart.write: [0xDF, 0xFF, 0xDB, 0xDB]  ## '\r'
+  #     - delay: 8ms
+  #     - uart.write: [0xFB, 0xFB, 0xDB, 0xDB]  ## '\n'
+
+sensor:
+  - platform: uptime
+    name: "${friendly_name} Uptime"
+
+  - platform: wifi_signal
+    name: "${friendly_name} WiFi Signal"
+    update_interval: 60s
+
+  - platform: custom
+    lambda: |-
+      auto jura_coffee = new JuraCoffee(id(uart_bus));
+      App.register_component(jura_coffee);
+      return {jura_coffee->total_sensor, jura_coffee->cappucino_sensor, jura_coffee->latte_macchiato_sensor, jura_coffee->flat_white_sensor, jura_coffee->milk_foam_sensor, jura_coffee->espresso_macchiato_sensor, jura_coffee->cortado_sensor, jura_coffee->ristretto_sensor, jura_coffee->espresso_sensor, jura_coffee->coffee_sensor, jura_coffee->caffe_barista_sensor, jura_coffee->lungo_barista_sensor, jura_coffee->espresso_doppio_sensor, jura_coffee->hot_water_sensor, jura_coffee->grounded_coffee_sensor};
+    
+    sensors:
+      # - name: "Tray Status"
+      # - name: "Water Tank Status"
+      - name: "Total"
+        accuracy_decimals: 0
+      - name: "Cappucino"
+        accuracy_decimals: 0
+      - name: "Latte Macchiato"
+        accuracy_decimals: 0
+      - name: "Flat White"
+        accuracy_decimals: 0
+      - name: "Milk Foam"
+        accuracy_decimals: 0
+      - name: "Espresso Macchiato"
+        accuracy_decimals: 0
+      - name: "Cortado"
+        accuracy_decimals: 0
+      - name: "Ristretto"
+        accuracy_decimals: 0
+      - name: "Espresso"
+        accuracy_decimals: 0
+      - name: "Coffee"
+        accuracy_decimals: 0
+      - name: "Caffè Barista"
+        accuracy_decimals: 0
+      - name: "Lungo Barista"
+        accuracy_decimals: 0
+      - name: "Espresso Doppio"
+        accuracy_decimals: 0
+      - name: "Hot Water"
+        accuracy_decimals: 0
+      - name: "Grounded Coffee"
+        accuracy_decimals: 0
+
+  # Total
+  # Cappucino
+  # Latte macchiato
+  # Flat white
+  # Milk foam
+  # Espresso macchiato
+  # Cortado
+  # Ristretto
+  # Espresso
+  # Coffee
+  # Caffè barista
+  # Lungo barista
+  # Espresso doppio
+  # Hot water
+  # Grounded coffee
+
+text_sensor:
+  - platform: version
+    name: "${friendly_name} ESPHome version"
+  
+  - 
+    
+  # - platform: custom
+  #   lambda: |-
+  #     auto my_jura_uart = new JuraUartReadLine(id(uart_bus));
+  #     App.register_component(my_jura_uart);
+  #     return {my_jura_uart};
+  #   text_sensors:
+  #     id: "jura_uart"
+  #     name: "Jura UART"
